@@ -66,7 +66,9 @@ async def quiz_command(update, context):
     callback_button1 = InlineKeyboardButton(text="Хочу кушать", callback_data="food")
     callback_button2 = InlineKeyboardButton(text="Хочу гулять", callback_data="walk")
     callback_button3 = InlineKeyboardButton(text="Хочу жить", callback_data="life")
-    keyboard = InlineKeyboardMarkup([[callback_button1, callback_button2, callback_button3]])
+    callback_button_stop = InlineKeyboardButton(text="Выйти", callback_data="stop")
+
+    keyboard = InlineKeyboardMarkup([[callback_button1, callback_button2, callback_button3], [callback_button_stop]])
 
     await context.bot.send_message(update.message.chat.id, "Начинается резня!!!", reply_markup=keyboard)
     return 1
@@ -96,6 +98,9 @@ async def quiz_ans1(call, context):
         callback_button5 = InlineKeyboardButton(text="Релакс", callback_data="relax")
         # callback_button6 = InlineKeyboardButton(text="Ресторан", callback_data="rest")
         keyboard = InlineKeyboardMarkup([[callback_button4, callback_button5]])
+    elif ans == 'stop':
+        await call.callback_query.message.reply_text("Конец резни")
+        return ConversationHandler.END
 
     await context.bot.send_message(call.callback_query.message.chat.id, "Начинается резня!!!", reply_markup=keyboard)
     return 2
@@ -291,32 +296,27 @@ def main():
 
     text_handler = MessageHandler(filters.TEXT, echo)
     # application.add_handler(text_handler)
-    conv_handler = ConversationHandler(
+    conv_handler_quiz = ConversationHandler(
         # Точка входа в диалог.
-        # В данном случае — команда /start. Она задаёт первый вопрос.
         entry_points=[CommandHandler('quiz', quiz_command)],
-
         # Состояние внутри диалога.
-        # Вариант с двумя обработчиками, фильтрующими текстовые сообщения.
         states={
             # Функция читает ответ на первый вопрос и задаёт второй.
             1: [CallbackQueryHandler(quiz_ans1)],
             # Функция читает ответ на второй вопрос и завершает диалог.
             2: [CallbackQueryHandler(quiz_ans2)]
         },
-
         # Точка прерывания диалога. В данном случае — команда /stop.
         fallbacks=[CommandHandler('stop', stop)]
     )
 
-    application.add_handler(conv_handler)
+    application.add_handler(conv_handler_quiz)
 
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("time", time_now))
     application.add_handler(CommandHandler("date", date_now))
 
-    application.add_handler(CommandHandler("quiz", quiz_command))
     application.add_handler(CommandHandler("walk", walk_command))
     application.add_handler(CommandHandler("place", place_command))
     application.add_handler(CommandHandler("new_place", new_place_command))
