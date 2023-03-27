@@ -6,9 +6,10 @@ import time
 import aiohttp
 from telegram import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Application, MessageHandler, filters
-from telegram.ext import CommandHandler, CallbackQueryHandler
+from telegram.ext import CommandHandler, CallbackQueryHandler, ConversationHandler
 
 BOT_TOKEN = '6288452612:AAEkJQqqid5enfM7iUOWHtV7jCaxXWCFgnk'
+KEYS = dict()
 
 # Запускаем логгирование
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
@@ -28,6 +29,7 @@ async def start_command(update, context):
     await update.message.reply_text(
         f"Я Бета Бот, охранник Троицка. Я помогу тебе познакомиться с этим городом. "
         f"\nНапишите мне /help, чтобы узнать, что я могу!",
+
         reply_markup=markup
     )
 
@@ -60,22 +62,100 @@ async def date_now(update, context):
 
 # quiz - пройти квест
 async def quiz_command(update, context):
-    callback_button = InlineKeyboardButton(text="Нажми меня", callback_data="test")
-    keyboard = InlineKeyboardMarkup([[callback_button]])
-    await context.bot.send_message(update.message.chat.id, "Я – сообщение из обычного режима", reply_markup=keyboard)
+    KEYS = []
+    callback_button1 = InlineKeyboardButton(text="Хочу кушать", callback_data="food")
+    callback_button2 = InlineKeyboardButton(text="Хочу гулять", callback_data="walk")
+    callback_button3 = InlineKeyboardButton(text="Хочу жить", callback_data="life")
+    keyboard = InlineKeyboardMarkup([[callback_button1, callback_button2, callback_button3]])
+
+    await context.bot.send_message(update.message.chat.id, "Начинается резня!!!", reply_markup=keyboard)
+    return 1
+
+
+async def quiz_ans1(call, context):
+    print('ОБРАБОТЧИК ВЫЗВАН---------------------------------------------------------------')
+    global KEYS
+    KEYS.clear()
+    ans = call.callback_query.data
+    print(call, 'ASWER')
+    if ans == 'food':
+        KEYS['table_name'] = 'food'
+        callback_button4 = InlineKeyboardButton(text="Фастфуд", callback_data="fastfood")
+        callback_button5 = InlineKeyboardButton(text="Выпечка/Булочки", callback_data="snack")
+        callback_button6 = InlineKeyboardButton(text="Ресторан", callback_data="rest")
+        keyboard = InlineKeyboardMarkup([[callback_button4, callback_button5, callback_button6]])
+    elif ans == 'walk':
+        KEYS['table_name'] = 'walk'
+        callback_button4 = InlineKeyboardButton(text="Парк", callback_data="park")
+        callback_button5 = InlineKeyboardButton(text="Город", callback_data="city")
+        # callback_button6 = InlineKeyboardButton(text="Ресторан", callback_data="rest")
+        keyboard = InlineKeyboardMarkup([[callback_button4, callback_button5]])
+    elif ans == 'life':
+        KEYS['table_name'] = 'activity'
+        callback_button4 = InlineKeyboardButton(text="Спорт", callback_data="sport")
+        callback_button5 = InlineKeyboardButton(text="Релакс", callback_data="relax")
+        # callback_button6 = InlineKeyboardButton(text="Ресторан", callback_data="rest")
+        keyboard = InlineKeyboardMarkup([[callback_button4, callback_button5]])
+
+    await context.bot.send_message(call.callback_query.message.chat.id, "Начинается резня!!!", reply_markup=keyboard)
+    return 2
+
+
+async def quiz_ans2(call, context):
+    print('ОБРАБОТЧИК ВЫЗВАН---------------------------------------------------------------')
+    ans = call.callback_query.data
+    print(call, 'ASWER')
+    if ans == 'fastfood':
+        KEYS['type'] = 'фастфуд'
+        callback_button4 = InlineKeyboardButton(text="Пицца", callback_data="pizza")
+        callback_button5 = InlineKeyboardButton(text="Шаурма", callback_data="shaurma")
+        callback_button6 = InlineKeyboardButton(text="Бургер", callback_data="burger")
+        keyboard = InlineKeyboardMarkup([[callback_button4, callback_button5, callback_button6]])
+    elif ans == 'snack':
+        KEYS['type'] = 'выпечка'
+        callback_button4 = InlineKeyboardButton(text="Кофейня", callback_data="coffee")
+        callback_button5 = InlineKeyboardButton(text="Булочная", callback_data="bread")
+        keyboard = InlineKeyboardMarkup([[callback_button4, callback_button5]])
+    elif ans == 'rest':
+        KEYS['type'] = 'ресторан'
+    elif ans == 'park':
+        KEYS['type'] = 'парк'
+        callback_button4 = InlineKeyboardButton(text="Лес", callback_data="forest")
+        callback_button5 = InlineKeyboardButton(text="Река", callback_data="river")
+        keyboard = InlineKeyboardMarkup([[callback_button4, callback_button5]])
+    elif ans == 'city':
+        KEYS['type'] = 'город'
+    elif ans == 'sport':
+        KEYS['type'] = 'спорт'
+        callback_button4 = InlineKeyboardButton(text="Волейбол", callback_data="volleyball")
+        callback_button5 = InlineKeyboardButton(text="Река", callback_data="river")
+        keyboard = InlineKeyboardMarkup([[callback_button4, callback_button5]])
+    elif ans == 'relax':
+        KEYS['type'] = 'душа'
+
+    await context.bot.send_message(call.callback_query.message.chat.id, "Начинается резня!!!", reply_markup=keyboard)
+    return 3
+
+
+async def stop(update, context):
+    await update.message.reply_text("Конец резни")
+    return ConversationHandler.END
 
 
 # walk - пойти гулять
 async def walk_command(update, context):
     arg = context.args
-    time.sleep(int(arg[0]))
+    print(arg, 'AGRSSSSSSSSSSSSSSSSSSSS')
+    if arg:
+        time.sleep(int(arg[0]))
     await update.message.reply_text(f'Перерыв окончен. Пора ботать, кожаный мешок')
 
 
 # place - поиск мест
 async def place_command(update, context):
     arg = context.args
-    time.sleep(int(arg[0]))
+    if arg:
+        time.sleep(int(arg[0]))
     await update.message.reply_text(f'Перерыв окончен. Пора ботать, кожаный мешок')
 
 
@@ -192,18 +272,18 @@ async def geocoder(update, context):
     )
 
 
-async def callback_inline(call, context):
-    # Если сообщение из чата с ботом
-    print(call)
-    print(call.callback_query.from_user.id)
-    print()
-    # if call.message:
-    #     if call.data == "test":
-    #         context.bot.send_message(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Пыщь")
-    # # Если сообщение из инлайн-режима
-    # elif call.inline_query:
-    #     if call.data == "test":
-    await context.bot.send_message(call.callback_query.from_user.id, 'ура')
+# async def callback_inline(call, context):
+#     # Если сообщение из чата с ботом
+#     print(call, ' CALLLL')
+#     print(call.callback_query.data, 'AMOGUS')
+#     print('------------------------------------------------------------')
+#     # if call.message:
+#     #     if call.data == "test":
+#     #         context.bot.send_message(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Пыщь")
+#     # # Если сообщение из инлайн-режима
+#     # elif call.inline_query:
+#     #     if call.data == "test":
+#     await context.bot.send_message(call.callback_query.from_user.id, 'ура')
 
 
 def main():
@@ -211,6 +291,26 @@ def main():
 
     text_handler = MessageHandler(filters.TEXT, echo)
     # application.add_handler(text_handler)
+    conv_handler = ConversationHandler(
+        # Точка входа в диалог.
+        # В данном случае — команда /start. Она задаёт первый вопрос.
+        entry_points=[CommandHandler('quiz', quiz_command)],
+
+        # Состояние внутри диалога.
+        # Вариант с двумя обработчиками, фильтрующими текстовые сообщения.
+        states={
+            # Функция читает ответ на первый вопрос и задаёт второй.
+            1: [CallbackQueryHandler(quiz_ans1)],
+            # Функция читает ответ на второй вопрос и завершает диалог.
+            2: [CallbackQueryHandler(quiz_ans2)]
+        },
+
+        # Точка прерывания диалога. В данном случае — команда /stop.
+        fallbacks=[CommandHandler('stop', stop)]
+    )
+
+    application.add_handler(conv_handler)
+
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("time", time_now))
@@ -229,7 +329,7 @@ def main():
     # application.add_handler(CommandHandler("chekan", chekan))
     # application.add_handler(CommandHandler("chekan_voice", chekan_voice))
 
-    application.add_handler(CallbackQueryHandler(callback_inline))
+    # application.add_handler(CallbackQueryHandler(callback_inline))
 
     application.run_polling()
 
