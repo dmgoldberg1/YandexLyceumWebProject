@@ -4,14 +4,14 @@ import logging
 import time
 
 import aiohttp
+import sqlite3
 from telegram import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Application, MessageHandler, filters
 from telegram.ext import CommandHandler, CallbackQueryHandler, ConversationHandler
 
-from utilities import check_keys
-
 BOT_TOKEN = '6288452612:AAEkJQqqid5enfM7iUOWHtV7jCaxXWCFgnk'
-KEYS = dict()
+KEYS = list()
+ANS_COUNT = 0
 
 # Запускаем логгирование
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
@@ -19,6 +19,20 @@ logger = logging.getLogger(__name__)
 
 reply_keyboard = [['/help', '/start']]
 markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=False)
+
+
+def check_keys(keys):
+    result = []
+    db = sqlite3.connect('trobot.db')
+    cursor = db.cursor()
+    request = f'''SELECT * FROM {keys[0]}'''
+    data = cursor.execute(request).fetchall()
+    for obj in data:
+        # print(set(keys[1]), 'НАШИ КЛЮЧИ-------------------------')
+        # print(set(obj[1].split()), 'КЛЮЧИ БД-------------------------')
+        if set(keys[1]) == set(obj[1].split()):
+            result.append(obj[0])
+    return result
 
 
 async def start_command(update, context):
@@ -64,7 +78,6 @@ async def date_now(update, context):
 
 # quiz - пройти квест
 async def quiz_command(update, context):
-    KEYS = []
     callback_button1 = InlineKeyboardButton(text="Хочу кушать", callback_data="food")
     callback_button2 = InlineKeyboardButton(text="Хочу гулять", callback_data="walk")
     callback_button3 = InlineKeyboardButton(text="Хочу жить", callback_data="activity")
@@ -81,8 +94,8 @@ async def quiz_ans1(call, context):
     global KEYS
     KEYS.clear()
     ans = call.callback_query.data
-    KEYS['table_name'] = ans
-    print(call, 'ASWER')
+    KEYS.append(ans)
+    print(KEYS, "КЛЮЧИ 1 ОТВЕТ--------------------------------------------------")
     if ans == 'food':
         callback_button4 = InlineKeyboardButton(text="< 500", callback_data="дешево")
         callback_button5 = InlineKeyboardButton(text="> 500 но < 1000", callback_data="средне")
@@ -115,9 +128,13 @@ async def quiz_ans1(call, context):
 async def quiz_ans2(call, context):
     print('ОБРАБОТЧИК ВЫЗВАН---------------------------------------------------------------')
     ans = call.callback_query.data
-    KEYS['keys'] = [ans]
-    print(call, 'ASWER')
-    if ans in ('дешево', "средне", "дорого"):
+    KEYS.append([ans])
+    #print(KEYS, "КЛЮЧИ 2 ОТВЕТ--------------------------------------------------")
+    if len(check_keys(KEYS)) > 0:
+        message = ' '.join(check_keys(KEYS))
+        await context.bot.send_message(call.callback_query.message.chat.id, message)
+        return ConversationHandler.END
+    elif ans in ('дешево', "средне", "дорого"):
         # KEYS['type'] = 'фастфуд'
         callback_button4 = InlineKeyboardButton(text="Фастфуд", callback_data="фастфуд")
         callback_button5 = InlineKeyboardButton(text="Выпечка", callback_data="выпечка")
@@ -153,9 +170,15 @@ async def quiz_ans2(call, context):
 async def quiz_ans3(call, context):
     print('ОБРАБОТЧИК ВЫЗВАН---------------------------------------------------------------')
     ans = call.callback_query.data
-    KEYS['keys'] = KEYS['keys'].append(ans)
-    print(call, 'ASWER')
-    if ans == 'фастфуд':
+    KEYS[1].append(ans)
+    #print(KEYS, "КЛЮЧИ 3 ОТВЕТ--------------------------------------------------")
+    #print(check_keys(KEYS), 'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR')
+    if len(check_keys(KEYS)) > 0:
+        message = ' '.join(check_keys(KEYS))
+        await context.bot.send_message(call.callback_query.message.chat.id, message)
+        return ConversationHandler.END
+
+    elif ans == 'фастфуд':
         callback_button4 = InlineKeyboardButton(text="Пицца", callback_data="пицца")
         callback_button5 = InlineKeyboardButton(text="Бургер", callback_data="бургер")
         callback_button6 = InlineKeyboardButton(text="Шаурма", callback_data="шаурма")
@@ -178,8 +201,14 @@ async def quiz_ans3(call, context):
 async def quiz_ans4(call, context):
     print('ОБРАБОТЧИК ВЫЗВАН---------------------------------------------------------------')
     ans = call.callback_query.data
-    KEYS['keys'] = KEYS['keys'].append(ans)
-    if ans == 'stop':
+    KEYS[1].append(ans)
+    #print(KEYS, "КЛЮЧИ 4 ОТВЕТ--------------------------------------------------")
+    if len(check_keys(KEYS)) > 0:
+        message = ' '.join(check_keys(KEYS))
+        await context.bot.send_message(call.callback_query.message.chat.id, message)
+        return ConversationHandler.END
+
+    elif ans == 'stop':
         await call.callback_query.message.reply_text("Конец резни")
         return ConversationHandler.END
 
