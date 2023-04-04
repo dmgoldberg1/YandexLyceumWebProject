@@ -32,7 +32,23 @@ def check_keys(keys):
         # print(set(obj[1].split()), 'КЛЮЧИ БД-------------------------')
         if set(keys[1]) == set(obj[1].split()):
             result.append(obj[0])
+    db.close()
     return result
+
+
+def get_coordinates(place, keys):
+    coordinates = []
+    print(place, 'ВНУТРИ ФУНКЦИИ')
+    db = sqlite3.connect('trobot.db')
+    cursor = db.cursor()
+    request = f'''SELECT coors FROM {keys[0]} WHERE name = ?'''
+    coors = cursor.execute(request, (place,)).fetchall()
+    #print(coors[0][0])
+    coordinates.append(coors[0][0].split(', '))
+    print(coordinates)
+    db.close()
+    return coordinates
+
 
 
 async def start_command(update, context):
@@ -129,10 +145,16 @@ async def quiz_ans2(call, context):
     print('ОБРАБОТЧИК ВЫЗВАН---------------------------------------------------------------')
     ans = call.callback_query.data
     KEYS.append([ans])
-    #print(KEYS, "КЛЮЧИ 2 ОТВЕТ--------------------------------------------------")
+    # print(KEYS, "КЛЮЧИ 2 ОТВЕТ--------------------------------------------------")
     if len(check_keys(KEYS)) > 0:
-        message = ' '.join(check_keys(KEYS))
-        await context.bot.send_message(call.callback_query.message.chat.id, message)
+        # message = ' '.join(check_keys(KEYS))
+        for place in check_keys(KEYS):
+            print(place)
+            coordinates = get_coordinates(place, KEYS)
+            cor1 = float(coordinates[0][0])
+            cor2 = float(coordinates[0][1])
+            await context.bot.send_location(call.callback_query.message.chat.id, cor1, cor2)
+            await context.bot.send_message(call.callback_query.message.chat.id, place)
         return ConversationHandler.END
     elif ans in ('дешево', "средне", "дорого"):
         # KEYS['type'] = 'фастфуд'
@@ -171,11 +193,17 @@ async def quiz_ans3(call, context):
     print('ОБРАБОТЧИК ВЫЗВАН---------------------------------------------------------------')
     ans = call.callback_query.data
     KEYS[1].append(ans)
-    #print(KEYS, "КЛЮЧИ 3 ОТВЕТ--------------------------------------------------")
-    #print(check_keys(KEYS), 'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR')
+    # print(KEYS, "КЛЮЧИ 3 ОТВЕТ--------------------------------------------------")
+    # print(check_keys(KEYS), 'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR')
     if len(check_keys(KEYS)) > 0:
-        message = ' '.join(check_keys(KEYS))
-        await context.bot.send_message(call.callback_query.message.chat.id, message)
+        # message = ' '.join(check_keys(KEYS))
+        for place in check_keys(KEYS):
+            print(place)
+            coordinates = get_coordinates(place, KEYS)
+            cor1 = float(coordinates[0][0])
+            cor2 = float(coordinates[0][1])
+            await context.bot.send_location(call.callback_query.message.chat.id, cor1, cor2)
+            await context.bot.send_message(call.callback_query.message.chat.id, place)
         return ConversationHandler.END
 
     elif ans == 'фастфуд':
@@ -202,10 +230,16 @@ async def quiz_ans4(call, context):
     print('ОБРАБОТЧИК ВЫЗВАН---------------------------------------------------------------')
     ans = call.callback_query.data
     KEYS[1].append(ans)
-    #print(KEYS, "КЛЮЧИ 4 ОТВЕТ--------------------------------------------------")
+    # print(KEYS, "КЛЮЧИ 4 ОТВЕТ--------------------------------------------------")
     if len(check_keys(KEYS)) > 0:
-        message = ' '.join(check_keys(KEYS))
-        await context.bot.send_message(call.callback_query.message.chat.id, message)
+        # message = ' '.join(check_keys(KEYS))
+        for place in check_keys(KEYS):
+            print(place)
+            coordinates = get_coordinates(place, KEYS)
+            cor1 = float(coordinates[0][0])
+            cor2 = float(coordinates[0][1])
+            await context.bot.send_location(call.callback_query.message.chat.id, cor1, cor2)
+            await context.bot.send_message(call.callback_query.message.chat.id, place)
         return ConversationHandler.END
 
     elif ans == 'stop':
