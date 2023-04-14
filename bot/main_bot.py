@@ -1,8 +1,15 @@
 # Импортируем необходимые классы.
 import datetime
 import logging
+import os
 import time
-
+import torch
+import torch.nn as nn
+import torchvision.transforms as transforms
+import timm
+from PIL import Image
+import requests
+from io import StringIO
 import aiohttp
 import sqlite3
 from telegram import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
@@ -16,9 +23,48 @@ ANS_COUNT = 0
 # Запускаем логгирование
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-
 reply_keyboard = [['/help', '/start']]
 markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=False)
+
+model = timm.create_model("resnest50d", pretrained=False)
+num_features = model.fc.in_features
+model.fc = nn.Linear(num_features, 3)
+model.load_state_dict(torch.load('trobot_classifier2.pth', map_location=torch.device('cpu')))
+model.eval()
+
+LEVELS = {
+    1: (1, 55.468117, 37.296497),
+    2: (2, 55.475614, 37.299292, 'волейбольной площадки'),
+    3: (1, 55.484520, 37.304923, 'фонтана'),
+    4: (0, 55.495157, 37.305522, 'уточки')
+}
+
+
+def predict_image(image, level):
+    img = Image.open(image)
+    transform_norm = transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(244),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])
+    # get normalized image
+    img_normalized = transform_norm(img).float()
+    img_normalized = img_normalized.unsqueeze_(0)
+    # input = Variable(image_tensor)
+    # print(img_normalized.shape)
+    with torch.no_grad():
+        model.eval()
+        output = model(img_normalized)
+        p = torch.nn.functional.softmax(output, dim=1)
+        probs = [p[0][0].item(), p[0][1].item(), p[0][2].item()]
+        max_ind = probs.index(max(probs))
+        print(probs)
+        print(max_ind)
+        if LEVELS[level][0] == max_ind and max(probs) > 0.75:
+            return True
+        else:
+            return False
 
 
 def check_keys(keys):
@@ -43,12 +89,11 @@ def get_coordinates(place, keys):
     cursor = db.cursor()
     request = f'''SELECT coors FROM {keys[0]} WHERE name = ?'''
     coors = cursor.execute(request, (place,)).fetchall()
-    #print(coors[0][0])
+    # print(coors[0][0])
     coordinates.append(coors[0][0].split(', '))
     print(coordinates)
     db.close()
     return coordinates
-
 
 
 async def start_command(update, context):
@@ -90,6 +135,67 @@ async def time_now(update, context):
 
 async def date_now(update, context):
     await update.message.reply_text(f'Дата - {datetime.datetime.now().date().strftime("%d %B %Y")}')
+
+
+async def photo_game(update, context):
+    print("Получил фото------------------------")
+    #print(update)
+    db = sqlite3.connect('game.db')
+    cursor = db.cursor()
+    user_id = update.message.chat.id
+    level = cursor.execute("SELECT level FROM main_game WHERE user_id = ?", (user_id,)).fetchone()[0]
+    r = requests.get((await context.bot.getFile(update.message.photo[0].file_id)).file_path)
+    if r.status_code == 200:
+        with open("image.jpg", 'wb') as f:
+            f.write(r.content)
+    print('DOWNLOADED')
+    if predict_image('image.jpg', level):
+        print('УРОВЕНЬ ПРОЙДЕН')
+        cursor.execute('UPDATE main_game SET level = ? WHERE user_id = ?', (level + 1, user_id, ))
+        db.commit()
+        os.remove('image.jpg')
+        message = 'Молодец! Ты справился с уровнем! Для продолжения напиши команду /game'
+        await context.bot.send_message(update.message.chat.id, message)
+    else:
+        print('УРОВЕНЬ ПРОВАЛЕН')
+        message = 'Ты отправил мне какой-то бред)'
+        await context.bot.send_message(update.message.chat.id, message)
+
+
+async def main_game(update, context):
+    db = sqlite3.connect('game.db')
+    cursor = db.cursor()
+    user_id = update.message.chat.id
+    nickname = update.message.chat.first_name + ' ' + update.message.chat.last_name
+    #print(update)
+    res = cursor.execute("SELECT user_id FROM main_game").fetchall()
+    ids = [i[0] for i in res]
+    if user_id not in ids:
+        print('НОВЫЙ ПОЛЬЗОВАТЕЛЬ------------------------')
+        cursor.execute("INSERT INTO main_game (user_id, nickname, level) VALUES (?, ?, ?)", (user_id, nickname, 1,))
+        db.commit()
+        message1 = 'Привет! Ты попал в программу "Сдохни или умри". В этой игре есть несколько уровней. Задача каждого ' \
+                  'уровня - отправить фотографию предлагаемого объекта в Троицке. Тебе будет дана точка на карте, ' \
+                  'до которой тебе нужно добраться. За каждое выполненное задание ты будешь получать очки! Удачи! '
+        message2 = 'Задание 1\nПройди на точку и отправь фото фонтана.'
+
+        await context.bot.send_message(update.message.chat.id, message1)
+        await context.bot.send_message(update.message.chat.id, message2)
+        await context.bot.send_location(update.message.chat.id, LEVELS[1][1], LEVELS[1][2])
+    else:
+        info = cursor.execute("SELECT level FROM main_game WHERE user_id = ?", (user_id, )).fetchone()[0]
+        message1 = f'''С возвращением!\nТвой текущий уровень - {info}'''
+        message2 = f'''Тебе нужно пройти к точке и отправить мне фото {LEVELS[info][3]}'''
+        await context.bot.send_message(update.message.chat.id, message1)
+        await context.bot.send_message(update.message.chat.id, message2)
+        await context.bot.send_location(update.message.chat.id, LEVELS[info][1], LEVELS[info][2])
+
+
+async def clear_database(update, context):
+    db = sqlite3.connect('game.db')
+    cursor = db.cursor()
+    cursor.execute('DELETE FROM main_game')
+    db.commit()
 
 
 # quiz - пройти квест
@@ -423,12 +529,15 @@ def main():
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("time", time_now))
     application.add_handler(CommandHandler("date", date_now))
+    application.add_handler(MessageHandler(filters.PHOTO, photo_game))
 
     application.add_handler(CommandHandler("walk", walk_command))
     application.add_handler(CommandHandler("place", place_command))
     application.add_handler(CommandHandler("new_place", new_place_command))
     application.add_handler(CommandHandler("site", site_command))
     application.add_handler(CommandHandler("map", map_command))
+    application.add_handler(CommandHandler('game', main_game))
+    application.add_handler(CommandHandler('clear_data', clear_database))
 
     application.add_handler(CommandHandler("set", set_timer))
     application.add_handler(CommandHandler("unset", unset))
