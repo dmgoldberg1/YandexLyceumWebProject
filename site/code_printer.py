@@ -2,7 +2,7 @@ import sqlite3
 import os
 
 
-def russglish(place):
+def russglish(word):
     eng_place = ''
     settings = {'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g',
                 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'j',
@@ -11,15 +11,16 @@ def russglish(place):
                 'п': 'p', 'р': 'r', 'с': 's', 'т': 't',
                 'у': 'u', 'ы': 'i', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
                 'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ь': '', 'ъ': '',
-                'э': 'e', 'ю': 'yu', 'я': 'ya'}
+                'э': 'e', 'ю': 'yu', 'я': 'ya', '№': 'n', '-': ' ', '.': '', ',': ''}
 
-    for i in place:
+    for i in word:
         eng_place += settings.get(i.lower(), i.lower())
 
-    return eng_place
+    return '_'.join(eng_place.split())
 
 
-db_path = os.path.abspath('code_printer.py').split('\_'[0])[:-1] + ['bot', 'trobot.db']
+db_path = os.path.abspath('code_printer.py').split('\_'[0])[:-2] + ['bot', 'trobot.db']
+
 con = sqlite3.connect('\_'[0].join(db_path))
 cur = con.cursor()
 
@@ -39,15 +40,15 @@ for elem in result:
         print('# Нет фотографии')
         photo = 'Нет картинки.png'
 
-    print(f'''@app.route('/{place}')
-def {'_'.join(russglish(place).split())}():
-    with open({description}, 'r') as fp:
+    print(f"""@app.route('/{'_'.join(place.split())}')
+def {russglish(place)}():
+    with open('{description}', 'r', encoding='utf8') as fp:
         description = fp.readline()
     return render_template('index.html',
                            title='{place}',
                            place='{place}',
                            description=description,
-                           image=url_for('static', filename='{photo}'))''')
+                           image=url_for('static', filename='{photo}'))""")
     print()
     print()
 
