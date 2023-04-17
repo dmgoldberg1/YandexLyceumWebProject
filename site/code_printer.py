@@ -40,9 +40,9 @@ for elem in result:
         print('# Нет фотографии')
         photo = 'Нет картинки.png'
 
-    print(f"""@app.route('/{place}')
+    print(f"""@app.route('/{'_'.join(place.split())}')
 def {russglish(place)}():
-    with open('{description}', 'r') as fp:
+    with open('{description}', 'r', encoding='utf8') as fp:
         description = fp.readline()
     return render_template('index.html',
                            title='{place}',
