@@ -27,7 +27,7 @@ def test():
 
 @app.route('/<place>')
 def sites(place):
-    db_path = os.path.abspath('code_printer.py').split('\_'[0])[:-2] + ['bot', 'trobot.db']
+    db_path = os.path.abspath('code_printer.py').split('\_'[0])[:-2] + ['bot', 'ex.db']
 
     con = sqlite3.connect('\_'[0].join(db_path))
     cur = con.cursor()
@@ -35,6 +35,7 @@ def sites(place):
     result = cur.execute("""SELECT name FROM activity WHERE name = ?""", (place,)).fetchall()
     result += cur.execute("""SELECT name FROM food WHERE name = ?""", (place,)).fetchall()
     result += cur.execute("""SELECT name FROM walk WHERE name = ?""", (place,)).fetchall()
+    print(result)
 
     con.close()
 
@@ -52,9 +53,9 @@ def sites(place):
         return render_template('index.html',
                                title=result[0][0],
                                place=result[0][0],
-                               description=description,
-                               image=url_for('static', filename=photo))
+                               description='Описание места',
+                               image=url_for('static', filename='test.png'))
 
 
 if __name__ == '__main__':
-    app.run(port=8080, host='127.0.0.1')
+    app.run(port=8080, host='192.168.68.125')

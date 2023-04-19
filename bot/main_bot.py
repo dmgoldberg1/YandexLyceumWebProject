@@ -33,12 +33,13 @@ model.load_state_dict(torch.load('trobot_classifier2.pth', map_location=torch.de
 model.eval()
 
 LEVELS = {
-    1: (1, 55.468117, 37.296497),
-    2: (2, 55.475614, 37.299292, 'волейбольной площадки'),
-    3: (1, 55.484520, 37.304923, 'фонтана'),
-    4: (0, 55.495157, 37.305522, 'уточки')
+    1: (1, 55.468117, 37.296497, 'фонтана', 37.295382, 37.298140, 55.467836, 55.469765),
+    2: (2, 55.475614, 37.299292, 'волейбольной площадки', 37.297233, 37.300808, 55.474638, 55.476154),
+    3: (1, 55.484520, 37.304923, 'фонтана', 37.304213, 37.308175, 55.484423, 55.486265),
+    4: (0, 55.495157, 37.305522, 'уточки', 37.301554, 37.308184, 55.492380, 55.496271)
 }
-
+LOC = True
+PHOTO = True
 
 def predict_image(image, level):
     img = Image.open(image)
@@ -138,35 +139,73 @@ async def date_now(update, context):
 
 
 async def photo_game(update, context):
+    global LOC
+    global PHOTO
     print("Получил фото------------------------")
     #print(update)
     db = sqlite3.connect('game.db')
     cursor = db.cursor()
     user_id = update.message.chat.id
+    print(update.message.location, 'LOCATION----------------------')
     level = cursor.execute("SELECT level FROM main_game WHERE user_id = ?", (user_id,)).fetchone()[0]
-    r = requests.get((await context.bot.getFile(update.message.photo[0].file_id)).file_path)
-    if r.status_code == 200:
-        with open("image.jpg", 'wb') as f:
-            f.write(r.content)
-    print('DOWNLOADED')
-    if predict_image('image.jpg', level):
-        print('УРОВЕНЬ ПРОЙДЕН')
-        cursor.execute('UPDATE main_game SET level = ? WHERE user_id = ?', (level + 1, user_id, ))
-        db.commit()
-        os.remove('image.jpg')
-        message = 'Молодец! Ты справился с уровнем! Для продолжения напиши команду /game'
-        await context.bot.send_message(update.message.chat.id, message)
-    else:
-        print('УРОВЕНЬ ПРОВАЛЕН')
-        message = 'Ты отправил мне какой-то бред)'
-        await context.bot.send_message(update.message.chat.id, message)
+    if update.message.location:
+        await context.bot.send_message(update.message.chat.id, "Получил координаты")
+        coor1, coor2 = update.message.location.latitude, update.message.location.longitude
+        LOC = True
+    elif update.message.photo[0]:
+        r = requests.get((await context.bot.getFile(update.message.photo[0].file_id)).file_path)
+        await context.bot.send_message(update.message.chat.id, "Получил фото")
+        PHOTO = True
+        if r.status_code == 200:
+            with open("image.jpg", 'wb') as f:
+                f.write(r.content)
+        print('DOWNLOADED')
+    print(LOC, PHOTO)
+    if LOC and PHOTO:
+        print('ANOOOOOGUS')
+        #if predict_image('image.jpg', level) and LEVELS[level][6] < coor1 < LEVELS[level][7] and LEVELS[level][4] < coor2 < LEVELS[level][5]:
+        if predict_image('image.jpg', level):
+            print('УРОВЕНЬ ПРОЙДЕН')
+            cursor.execute('UPDATE main_game SET level = ? WHERE user_id = ?', (level + 1, user_id, ))
+            db.commit()
+            os.remove('image.jpg')
+            message = 'Молодец! Ты справился с уровнем! Если хочешь сейчас же начать новый, то нажми на кнопку. Ты в любой момент можешь вернуться к прохождению, написав команду /game'
+            LOC, PHOTO = True, True
+            callback_button = InlineKeyboardButton(text="Следующий уровень", callback_data="amogus")
+            keyboard = InlineKeyboardMarkup([[callback_button]])
+
+            await context.bot.send_message(update.message.chat.id, message, reply_markup=keyboard)
+            return 1
+        else:
+            print('УРОВЕНЬ ПРОВАЛЕН')
+            message = 'Ты отправил неправилное фото или ты не дошел то точки. Отправь фото и локацию еше раз'
+            LOC, PHOTO = None, None
+            await context.bot.send_message(update.message.chat.id, message)
+
+async def game_ans(call, context):
+    print('GAME ANS ВЫЗВАН---------------------------------------------------------------')
+    ans = call.callback_query.data
+    user_id = call.callback_query.from_user.id
+    print(user_id)
+    if ans == 'amogus':
+        db = sqlite3.connect('game.db')
+        cursor = db.cursor()
+        info = cursor.execute("SELECT level FROM main_game WHERE user_id = ?", (user_id,)).fetchone()[0]
+        message1 = f'''С возвращением!\nТвой текущий уровень - {info}'''
+        message2 = f'''Тебе нужно пройти к точке и отправить мне фото {LEVELS[info][3]} и свою геопозицию'''
+        await context.bot.send_message(call.callback_query.message.chat.id, message1)
+        await context.bot.send_message(call.callback_query.message.chat.id, message2)
+        await context.bot.send_location(call.callback_query.message.chat.id, LEVELS[info][1], LEVELS[info][2])
+        return ConversationHandler.END
 
 
 async def main_game(update, context):
+    print('I AM HERE IN MAIN GAME----------------------------')
     db = sqlite3.connect('game.db')
     cursor = db.cursor()
     user_id = update.message.chat.id
     nickname = update.message.chat.first_name + ' ' + update.message.chat.last_name
+
     #print(update)
     res = cursor.execute("SELECT user_id FROM main_game").fetchall()
     ids = [i[0] for i in res]
@@ -175,7 +214,7 @@ async def main_game(update, context):
         cursor.execute("INSERT INTO main_game (user_id, nickname, level) VALUES (?, ?, ?)", (user_id, nickname, 1,))
         db.commit()
         message1 = 'Привет! Ты попал в программу "Сдохни или умри". В этой игре есть несколько уровней. Задача каждого ' \
-                  'уровня - отправить фотографию предлагаемого объекта в Троицке. Тебе будет дана точка на карте, ' \
+                  'уровня - отправить фотографию предлагаемого объекта в Троицке и твою геопозицию. Тебе будет дана точка на карте, ' \
                   'до которой тебе нужно добраться. За каждое выполненное задание ты будешь получать очки! Удачи! '
         message2 = 'Задание 1\nПройди на точку и отправь фото фонтана.'
 
@@ -185,7 +224,7 @@ async def main_game(update, context):
     else:
         info = cursor.execute("SELECT level FROM main_game WHERE user_id = ?", (user_id, )).fetchone()[0]
         message1 = f'''С возвращением!\nТвой текущий уровень - {info}'''
-        message2 = f'''Тебе нужно пройти к точке и отправить мне фото {LEVELS[info][3]}'''
+        message2 = f'''Тебе нужно пройти к точке и отправить мне фото {LEVELS[info][3]} и свою геопозицию'''
         await context.bot.send_message(update.message.chat.id, message1)
         await context.bot.send_message(update.message.chat.id, message2)
         await context.bot.send_location(update.message.chat.id, LEVELS[info][1], LEVELS[info][2])
@@ -259,8 +298,12 @@ async def quiz_ans2(call, context):
             coordinates = get_coordinates(place, KEYS)
             cor1 = float(coordinates[0][0])
             cor2 = float(coordinates[0][1])
-            await context.bot.send_location(call.callback_query.message.chat.id, cor1, cor2)
+            message = f'Нажми на кнопку и перейди на сайт с информацией про это место'
+            callback_button = InlineKeyboardButton(text="Сайт места", url=f"http://192.168.68.125:8080/{place.capitalize()}")
+            keyboard = InlineKeyboardMarkup([[callback_button]])
             await context.bot.send_message(call.callback_query.message.chat.id, place)
+            await context.bot.send_location(call.callback_query.message.chat.id, cor1, cor2)
+            await context.bot.send_message(call.callback_query.message.chat.id, message, reply_markup=keyboard)
         return ConversationHandler.END
     elif ans in ('дешево', "средне", "дорого"):
         # KEYS['type'] = 'фастфуд'
@@ -308,8 +351,12 @@ async def quiz_ans3(call, context):
             coordinates = get_coordinates(place, KEYS)
             cor1 = float(coordinates[0][0])
             cor2 = float(coordinates[0][1])
-            await context.bot.send_location(call.callback_query.message.chat.id, cor1, cor2)
+            message = f'Нажми на кнопку и перейди на сайт с информацией про это место'
+            callback_button = InlineKeyboardButton(text="Сайт места", url=f"http://192.168.68.125:8080/{place.capitalize()}")
+            keyboard = InlineKeyboardMarkup([[callback_button]])
             await context.bot.send_message(call.callback_query.message.chat.id, place)
+            await context.bot.send_location(call.callback_query.message.chat.id, cor1, cor2)
+            await context.bot.send_message(call.callback_query.message.chat.id, message, reply_markup=keyboard)
         return ConversationHandler.END
 
     elif ans == 'фастфуд':
@@ -344,8 +391,15 @@ async def quiz_ans4(call, context):
             coordinates = get_coordinates(place, KEYS)
             cor1 = float(coordinates[0][0])
             cor2 = float(coordinates[0][1])
-            await context.bot.send_location(call.callback_query.message.chat.id, cor1, cor2)
+            message = f'Нажми на кнопку и перейди на сайт с информацией про это место'
+            callback_button = InlineKeyboardButton(text="Сайт места", url=f"http://192.168.68.125:8080/{place.capitalize()}")
+            keyboard = InlineKeyboardMarkup([[callback_button]])
             await context.bot.send_message(call.callback_query.message.chat.id, place)
+            await context.bot.send_location(call.callback_query.message.chat.id, cor1, cor2)
+            await context.bot.send_message(call.callback_query.message.chat.id, message, reply_markup=keyboard)
+
+            #import main
+            print('IMPORT')
         return ConversationHandler.END
 
     elif ans == 'stop':
@@ -522,14 +576,26 @@ def main():
         # Точка прерывания диалога. В данном случае — команда /stop.
         fallbacks=[CommandHandler('stop', stop)]
     )
+    conv_handler_game = ConversationHandler(
+        # Точка входа в диалог.
+        entry_points=[MessageHandler(filters.LOCATION | filters.PHOTO, photo_game)],
+        # Состояние внутри диалога.
+        states={
+            # Функция читает ответ на первый вопрос и задаёт второй.
+            1: [CallbackQueryHandler(game_ans)],
+        },
+        # Точка прерывания диалога. В данном случае — команда /stop.
+        fallbacks=[CommandHandler('stop', stop)]
+    )
 
     application.add_handler(conv_handler_quiz)
+    application.add_handler(conv_handler_game)
 
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("time", time_now))
     application.add_handler(CommandHandler("date", date_now))
-    application.add_handler(MessageHandler(filters.PHOTO, photo_game))
+    application.add_handler(MessageHandler(filters.LOCATION | filters.PHOTO, photo_game))
 
     application.add_handler(CommandHandler("walk", walk_command))
     application.add_handler(CommandHandler("place", place_command))
