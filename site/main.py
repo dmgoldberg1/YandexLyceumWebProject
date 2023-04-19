@@ -8,9 +8,22 @@ app = Flask(__name__)
 @app.route('/')
 def main_page():
     base = 'http://127.0.0.1:8080/'
-    links = ['ТЦ_Троицк', 'Заречье', 'Квант',
-             'Рынок', 'Баня', 'Вкусно_И_Точка',
-             'Додо_Пицца', 'Изумрудный_Город']
+    links = []
+
+    db_path = os.path.abspath('code_printer.py').split('\_'[0])[:-2] + ['bot', 'trobot.db']
+
+    con = sqlite3.connect('\_'[0].join(db_path))
+    cur = con.cursor()
+
+    result = cur.execute("""SELECT name FROM activity""").fetchall()
+    result += cur.execute("""SELECT name FROM food""").fetchall()
+    result += cur.execute("""SELECT name FROM walk""").fetchall()
+
+    con.close()
+
+    for i in result:
+        links.append(i[0])
+
     return render_template('main_page.html',
                            base=base,
                            links=links)
@@ -54,6 +67,14 @@ def sites(place):
                                place=result[0][0],
                                description=description,
                                image=url_for('static', filename=photo))
+
+    else:
+        return render_template('non_existent.html')
+
+
+@app.route('/О_нас')
+def about():
+    return render_template('about.html')
 
 
 if __name__ == '__main__':
