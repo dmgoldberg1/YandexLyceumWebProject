@@ -8,13 +8,17 @@
                     integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1"
                     crossorigin="anonymous">
 
-        <title>Маршрутизатор по Троицку</title>
-    </head>
-    
-    <body>
-        <h1>Маршрутизатор</h1>
-        {% for i in links %}
-            <ul><font size="6"><a href="{{base + i}}"><li>{{ i }}</li></a></font></ul>
-        {% endfor %}
-    </body>
+    <title>Маршрутизатор по Троицку</title>
+</head>
+<body>
+    <h1>Маршрутизатор</h1>
+    {% for i in links %}
+        <ul><font size="6"><a href="{{base + i}}"><li>{{ i }}</li></a></font></ul>
+    {% endfor %}
+    <footer style="position: fixed; bottom: 0; text-align: center; width: 100%;">
+        <font size="5"><a href="https://t.me/beta_guard_bot">Бот</a></font>
+        <font size="5"><a href="http://127.0.0.1:8080">Главная страница</a></font>
+        <font size="5"><a href="http://127.0.0.1:8080/О_нас">О нас</a></font>
+    </footer>
+</body>
 </html>
