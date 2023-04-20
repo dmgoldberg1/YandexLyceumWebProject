@@ -116,26 +116,26 @@ async def help_command(update, context):
     """Отправляет сообщение когда получена команда /help"""
     text = "Я могу помочь тебе\n" \
            "Используй такие команды:\n\n" \
-           "/quiz - пройти квест\n" \
+           "/find_place - пройти квест\n" \
            "/walk - пойти гулять\n" \
            "/place - поиск мест\n" \
            "/new_place - добавить новое место\n" \
            "/site - сайт со всеми местами\n" \
            "/map - карта Троицка\n" \
            "/geocoder - тест картинок"
-    await update.message.reply_text(text)
+    await update.message.reply_text(text, reply_markup=markup)
 
 
 async def echo(update, context):
-    await update.message.reply_text(f'Я получил сообщение "{update.message.text}"')
+    await update.message.reply_text(f'Я получил сообщение "{update.message.text}"', reply_markup=markup)
 
 
 async def time_now(update, context):
-    await update.message.reply_text(f'Время - {datetime.datetime.now().time().strftime("%H:%M")}')
+    await update.message.reply_text(f'Время - {datetime.datetime.now().time().strftime("%H:%M")}', reply_markup=markup)
 
 
 async def date_now(update, context):
-    await update.message.reply_text(f'Дата - {datetime.datetime.now().date().strftime("%d %B %Y")}')
+    await update.message.reply_text(f'Дата - {datetime.datetime.now().date().strftime("%d %B %Y")}', reply_markup=markup)
 
 
 async def photo_game(update, context):
@@ -563,7 +563,7 @@ def main():
     # application.add_handler(text_handler)
     conv_handler_quiz = ConversationHandler(
         # Точка входа в диалог.
-        entry_points=[CommandHandler('quiz', quiz_command)],
+        entry_points=[CommandHandler('find_place', quiz_command)],
         # Состояние внутри диалога.
         states={
             # Функция читает ответ на первый вопрос и задаёт второй.
@@ -619,3 +619,4 @@ def main():
 # Запускаем функцию main() в случае запуска скрипта.
 if __name__ == '__main__':
     main()
+
