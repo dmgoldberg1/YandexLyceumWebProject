@@ -78,10 +78,13 @@ def check_keys(keys):
     cursor = db.cursor()
     request = f'''SELECT * FROM {keys[0]}'''
     data = cursor.execute(request).fetchall()
+    keys_tokens = set(keys[1])
     print(keys, 'cccc', data)
     print('НАШИ КЛЮЧИ--------------------------------------------------------------------------------')
     for obj in data:
-        if set(keys[1]).issubset(set(obj[-1].split())):
+        obj_tokens = set(obj[-1].split())
+        print(keys_tokens, '   ', obj_tokens)
+        if keys_tokens.issubset(obj_tokens):
             result.append(obj)
     print(result)
     db.close()
@@ -480,31 +483,11 @@ async def quiz_ans_food(call, context):
     callback_button6 = InlineKeyboardButton(text="Ресторан", callback_data="ресторан")
     callback_button_stop = InlineKeyboardButton(text="Выйти", callback_data="stop")
     message = 'Какую еду вы хотите поесть?'
-    keyboard = InlineKeyboardMarkup([[callback_button4], [callback_button5], [callback_button6], [callback_button_stop]])
+    keyboard = InlineKeyboardMarkup(
+        [[callback_button4], [callback_button5], [callback_button6], [callback_button_stop]])
 
     await context.bot.send_message(call.callback_query.message.chat.id, message, reply_markup=keyboard)
     return 5
-
-async def quiz_ans_final(call, context):
-    print('ОБРАБОТЧИК ВЫЗВАН---------------------------------------------------------------')
-    ans = call.callback_query.data
-    KEYS.append([ans])
-    print(KEYS)
-
-    if ans == 'stop':
-        await call.callback_query.message.reply_text("Конец резни")
-        return ConversationHandler.END
-
-    db_results, buttons = check_keys(KEYS), []
-    for place in db_results:
-        callback_button = InlineKeyboardButton(text=place[1], callback_data=place[1])
-        buttons.append([callback_button])
-    message = 'Выберете место для посещения'
-    callback_button_stop = InlineKeyboardButton(text="Выйти", callback_data="stop")
-    keyboard = InlineKeyboardMarkup([*buttons, [callback_button_stop]])
-
-    await context.bot.send_message(call.callback_query.message.chat.id, message, reply_markup=keyboard)
-    return 6
 
 
 async def quiz_ans_walk(call, context):
@@ -535,13 +518,85 @@ async def quiz_ans_walk(call, context):
         await context.bot.send_message(call.callback_query.message.chat.id, message, reply_markup=keyboard)
         return 6
 
+    callback_button4 = InlineKeyboardButton(text="Детские площадки и другие развлечения", callback_data="развлечения")
+    callback_button5 = InlineKeyboardButton(text="Река", callback_data="река")
+    callback_button6 = InlineKeyboardButton(text="Лес", callback_data="лес")
+    callback_button_stop = InlineKeyboardButton(text="Выйти", callback_data="stop")
+    message = 'Что вы хотите, чтобы было в парке?'
+    keyboard = InlineKeyboardMarkup(
+        [[callback_button4], [callback_button5], [callback_button6], [callback_button_stop]])
+
+    await context.bot.send_message(call.callback_query.message.chat.id, message, reply_markup=keyboard)
+    return 5
+
+
 async def quiz_ans_activity(call, context):
     print('ОБРАБОТЧИК ВЫЗВАН---------------------------------------------------------------')
     ans = call.callback_query.data
     KEYS.append([ans])
+
     if ans == 'stop':
         await call.callback_query.message.reply_text("Конец резни")
         return ConversationHandler.END
+    print('ОБРАБОТЧИК ВЫЗВАН---------------------------------------------------------------')
+    ans = call.callback_query.data
+    KEYS.append([ans])
+    print(KEYS)
+
+    if ans == 'stop':
+        await call.callback_query.message.reply_text("Конец резни")
+        return ConversationHandler.END
+    elif ans == 'музей' or ans == 'театр' or ans == 'центр':
+        db_results, buttons = check_keys(KEYS), []
+        for place in db_results:
+            callback_button = InlineKeyboardButton(text=place[1], callback_data=place[1])
+            buttons.append([callback_button])
+        print(buttons)
+        message = 'Выберете место для посещения'
+        callback_button_stop = InlineKeyboardButton(text="Выйти", callback_data="stop")
+        keyboard = InlineKeyboardMarkup([*buttons, [callback_button_stop]])
+
+        await context.bot.send_message(call.callback_query.message.chat.id, message, reply_markup=keyboard)
+        return 6
+
+    callback_button4 = InlineKeyboardButton(text="Воркаут", callback_data="воркаут")
+    callback_button5 = InlineKeyboardButton(text="Футбол", callback_data="футбол")
+    callback_button6 = InlineKeyboardButton(text="Волейбол", callback_data="волейбол")
+    callback_button7 = InlineKeyboardButton(text="Хоккей", callback_data="хоккей")
+    callback_button8 = InlineKeyboardButton(text="Лыжи", callback_data="лыжи")
+    callback_button9 = InlineKeyboardButton(text="Развлечения и детские площадки", callback_data="развлечения")
+    callback_button_stop = InlineKeyboardButton(text="Выйти", callback_data="stop")
+    message = 'Что вы хотите, чтобы было в парке?'
+    keyboard = InlineKeyboardMarkup(
+        [[callback_button4], [callback_button5], [callback_button6], [callback_button7], [callback_button8],
+         [callback_button9], [callback_button_stop]])
+
+    await context.bot.send_message(call.callback_query.message.chat.id, message, reply_markup=keyboard)
+    return 5
+
+
+async def quiz_ans_final(call, context):
+    print('ОБРАБОТЧИК ВЫЗВАН---------------------------------------------------------------')
+    ans = call.callback_query.data
+    KEYS[1].append(ans)
+    print(KEYS)
+
+    if ans == 'stop':
+        await call.callback_query.message.reply_text("Конец резни")
+        return ConversationHandler.END
+
+    db_results, buttons = check_keys(KEYS), []
+    for place in db_results:
+        callback_button = InlineKeyboardButton(text=place[1], callback_data=place[1])
+        buttons.append([callback_button])
+    print(buttons)
+    message = 'Выберете место для посещения'
+    callback_button_stop = InlineKeyboardButton(text="Выйти", callback_data="stop")
+    # print(len([*buttons1, [callback_button_stop]]))
+    keyboard = InlineKeyboardMarkup([*buttons, [callback_button_stop]])
+    await context.bot.send_message(call.callback_query.message.chat.id, message, reply_markup=keyboard)
+    return 6
+
 
 async def quiz_ans_final_end(call, context):
     print('ОБРАБОТЧИК ВЫЗВАН---------------------------------------------------------------')
@@ -557,7 +612,7 @@ async def quiz_ans_final_end(call, context):
         if cafe[1] == ans:
             button = cafe
     print('Place = ', button)
-    place =  button[1]
+    place = button[1]
     coordinates = get_coordinates(place, KEYS)
     cor1 = float(coordinates[0][0])
     cor2 = float(coordinates[0][1])
@@ -569,6 +624,7 @@ async def quiz_ans_final_end(call, context):
     await context.bot.send_location(call.callback_query.message.chat.id, cor1, cor2)
     await context.bot.send_message(call.callback_query.message.chat.id, message, reply_markup=keyboard)
     return ConversationHandler.END
+
 
 async def quiz_ans2(call, context):
     print('ОБРАБОТЧИК ВЫЗВАН---------------------------------------------------------------')
