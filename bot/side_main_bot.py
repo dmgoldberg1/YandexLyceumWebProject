@@ -8,10 +8,10 @@ from io import StringIO
 
 import aiohttp
 import requests
-# import torch
-# import torch.nn as nn
-# import torchvision.transforms as transforms
-# import timm
+import torch
+import torch.nn as nn
+import torchvision.transforms as transforms
+import timm
 from PIL import Image
 from telegram import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Application, MessageHandler, filters
@@ -30,20 +30,20 @@ reply_keyboard = [['/help', '/start']]
 markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=False)
 
 
-# model = timm.create_model("resnest50d", pretrained=False)
-# num_features = model.fc.in_features
-# model.fc = nn.Linear(num_features, 3)
-# model.load_state_dict(torch.load('trobot_classifier2.pth', map_location=torch.device('cpu')))
-# model.eval()
-# 
-# LEVELS = {
-#     1: (1, 55.468117, 37.296497, 'фонтана', 37.295382, 37.298140, 55.467836, 55.469765),
-#     2: (2, 55.475614, 37.299292, 'волейбольной площадки', 37.297233, 37.300808, 55.474638, 55.476154),
-#     3: (1, 55.484520, 37.304923, 'фонтана', 37.304213, 37.308175, 55.484423, 55.486265),
-#     4: (0, 55.495157, 37.305522, 'уточки', 37.301554, 37.308184, 55.492380, 55.496271)
-# }
-# LOC = True
-# PHOTO = True
+model = timm.create_model("resnest50d", pretrained=False)
+num_features = model.fc.in_features
+model.fc = nn.Linear(num_features, 3)
+model.load_state_dict(torch.load('trobot_classifier2.pth', map_location=torch.device('cpu')))
+model.eval()
+
+LEVELS = {
+    1: (1, 55.468117, 37.296497, 'фонтана', 37.295382, 37.298140, 55.467836, 55.469765),
+    2: (2, 55.475614, 37.299292, 'волейбольной площадки', 37.297233, 37.300808, 55.474638, 55.476154),
+    3: (1, 55.484520, 37.304923, 'фонтана', 37.304213, 37.308175, 55.484423, 55.486265),
+    4: (0, 55.495157, 37.305522, 'уточки', 37.301554, 37.308184, 55.492380, 55.496271)
+}
+LOC = True
+PHOTO = True
 
 def predict_image(image, level):
     img = Image.open(image)
@@ -694,19 +694,19 @@ def main():
         # Точка прерывания диалога. В данном случае — команда /stop.
         fallbacks=[CommandHandler('stop', stop_dialog)]
     )
-    # conv_handler_game = ConversationHandler(
-    #     # Точка входа в диалог.
-    #     entry_points=[MessageHandler(filters.LOCATION | filters.PHOTO, photo_game)],
-    #     # Состояние внутри диалога.
-    #     states={
-    #         1: [CallbackQueryHandler(game_ans)],
-    #     },
-    #     # Точка прерывания диалога. В данном случае — команда /stop.
-    #     fallbacks=[CommandHandler('stop', stop_dialog)]
-    # )
+    conv_handler_game = ConversationHandler(
+        # Точка входа в диалог.
+        entry_points=[MessageHandler(filters.LOCATION | filters.PHOTO, photo_game)],
+        # Состояние внутри диалога.
+        states={
+            1: [CallbackQueryHandler(game_ans)],
+        },
+        # Точка прерывания диалога. В данном случае — команда /stop.
+        fallbacks=[CommandHandler('stop', stop_dialog)]
+    )
 
     application.add_handler(conv_handler_quiz)
-    # application.add_handler(conv_handler_game)
+    application.add_handler(conv_handler_game)
 
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
