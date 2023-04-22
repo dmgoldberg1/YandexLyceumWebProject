@@ -11,9 +11,17 @@
     <title>Маршрутизатор по Троицку</title>
 </head>
 <body>
-    <h1>Маршрутизатор</h1>
+    <div style="background-color: {{ background }}; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+    <img src="{{ logo }}" style="max-width: 100%; max-height: 100%; margin-bottom: 10px;">
+    </div>
+    <h1 style="text-align: center;">Снизу список того:</h1>
     {% for i in links %}
+    {% if '#' in i[1] %}
+        <ul><font size="6"><li style="background-color: {{ i[1] }};
+        text-align: center; list-style: none; ">{{ i[0] }}</li></font></ul>
+    {% else %}
         <ul><font size="6"><a href="{{base + i}}"><li>{{ i }}</li></a></font></ul>
+    {% endif %}
     {% endfor %}
     <footer style="position: fixed; bottom: 0; text-align: center; width: 100%;">
         <font size="5"><a href="https://t.me/beta_guard_bot">Бот</a></font>
