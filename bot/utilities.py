@@ -34,9 +34,9 @@ def predict_image(image, level):
 
 
 def check_keys(keys):
-    global DB
+    
     result = []
-    db = sqlite3.connect(DB)
+    db = sqlite3.connect('ex.db')
     cursor = db.cursor()
     request = f'''SELECT * FROM {keys[0]}'''
     data = cursor.execute(request).fetchall()
