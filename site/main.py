@@ -92,4 +92,4 @@ def about():
 
 
 if __name__ == '__main__':
-    app.run(port=8080, host='192.168.68.125')
+    app.run(port=8080)
