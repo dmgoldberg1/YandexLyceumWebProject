@@ -43,8 +43,8 @@ LEVELS = {
     3: (1, 55.484520, 37.304923, 'фонтана', 37.304213, 37.308175, 55.484423, 55.486265),
     4: (0, 55.495157, 37.305522, 'уточки', 37.301554, 37.308184, 55.492380, 55.496271)
 }
-LOC = True
-PHOTO = True
+LOC = None
+PHOTO = None
 
 def predict_image(image, level):
     img = Image.open(image)
@@ -183,7 +183,7 @@ async def photo_game(update, context):
             db.commit()
             os.remove('image.jpg')
             message = 'Молодец! Ты справился с уровнем! Если хочешь сейчас же начать новый, то нажми на кнопку. Ты в любой момент можешь вернуться к прохождению, написав команду /game'
-            LOC, PHOTO = True, True
+            LOC, PHOTO = None, None
             callback_button = InlineKeyboardButton(text="Следующий уровень", callback_data="amogus")
             keyboard = InlineKeyboardMarkup([[callback_button]])
 
