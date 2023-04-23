@@ -670,7 +670,7 @@ async def quiz_ans_final_end(call, context):
     cor2 = float(coordinates[0][1])
     message = f'Нажми на кнопку и перейди на сайт с информацией про это место'
     callback_button = InlineKeyboardButton(text="Сайт места",
-                                           url=f"http://192.168.68.125:8080/{place.capitalize()}")
+                                           url=f"http://192.168.68.125:8080/{place}")
     keyboard = InlineKeyboardMarkup([[callback_button]])
     await context.bot.send_message(call.callback_query.message.chat.id, place)
     await context.bot.send_location(call.callback_query.message.chat.id, cor1, cor2)
